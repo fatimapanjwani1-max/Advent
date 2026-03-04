@@ -1,10 +1,6 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext';
-import Layout from '../../components/Layout';
-import { Link } from 'react-router-dom';
-import { Building2, Calendar, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { Building2, Calendar, CheckCircle2, Clock, AlertCircle, Plus } from 'lucide-react';
 import { format } from 'date-fns';
+import Link from 'next/link';
 
 interface Project {
   id: string;
@@ -14,34 +10,12 @@ interface Project {
   progress_percentage: number;
   start_date: string;
   estimated_completion: string;
+  client: {
+    full_name: string;
+  };
 }
 
-export default function ClientDashboard() {
-  const { profile } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const fetchProjects = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('client_id', profile?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setProjects(data as Project[]);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export default function AdminDashboard({ projects, profile }: { projects: Project[], profile: any }) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
@@ -60,32 +34,33 @@ export default function ClientDashboard() {
     }
   };
 
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex h-64 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-300 border-t-blue-600"></div>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
-    <Layout>
+    <div className="space-y-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h1 className="text-2xl font-semibold text-slate-900">My Projects</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">Projects Overview</h1>
           <p className="mt-2 text-sm text-slate-700">
-            Welcome back, {profile?.full_name}. Here is the status of your construction projects.
+            A list of all construction projects including their status, progress, and client details.
           </p>
         </div>
+        {profile?.role === 'admin' && (
+          <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+            <Link
+              href="/admin/projects/new"
+              className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+            >
+              <Plus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+              New Project
+            </Link>
+          </div>
+        )}
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {projects.map((project) => (
           <Link
             key={project.id}
-            to={`/projects/${project.id}`}
+            href={`/projects/${project.id}`}
             className="col-span-1 flex flex-col divide-y divide-slate-200 rounded-2xl bg-white text-center shadow-sm transition-shadow hover:shadow-md border border-slate-100"
           >
             <div className="flex flex-1 flex-col p-8">
@@ -94,8 +69,8 @@ export default function ClientDashboard() {
               </div>
               <h3 className="mt-6 text-lg font-medium text-slate-900">{project.name}</h3>
               <dl className="mt-1 flex flex-grow flex-col justify-between">
-                <dt className="sr-only">Location</dt>
-                <dd className="text-sm text-slate-500">{project.location}</dd>
+                <dt className="sr-only">Client</dt>
+                <dd className="text-sm text-slate-500">{project.client?.full_name}</dd>
                 <dt className="sr-only">Status</dt>
                 <dd className="mt-4">
                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${getStatusColor(project.status)}`}>
@@ -137,14 +112,6 @@ export default function ClientDashboard() {
           </Link>
         ))}
       </div>
-      
-      {projects.length === 0 && (
-        <div className="mt-8 text-center rounded-2xl border-2 border-dashed border-slate-300 p-12">
-          <Building2 className="mx-auto h-12 w-12 text-slate-400" />
-          <h3 className="mt-2 text-sm font-semibold text-slate-900">No active projects</h3>
-          <p className="mt-1 text-sm text-slate-500">You don't have any projects assigned to you yet.</p>
-        </div>
-      )}
-    </Layout>
+    </div>
   );
 }

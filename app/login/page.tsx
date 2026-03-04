@@ -1,24 +1,19 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/src/lib/supabase/client';
 import { Building2, Lock, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export default function Login() {
+export const dynamic = 'force-dynamic';
+
+export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user } = useAuth();
-
-  // Redirect if already logged in
-  if (user) {
-    const from = location.state?.from?.pathname || '/';
-    return <Navigate to={from} replace />;
-  }
+  const router = useRouter();
+  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,8 +28,8 @@ export default function Login() {
       if (error) throw error;
       
       toast.success('Successfully logged in');
-      const from = location.state?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      router.push('/');
+      router.refresh(); // Crucial for updating RSC state
     } catch (error: any) {
       toast.error(error.message || 'Failed to login');
     } finally {
